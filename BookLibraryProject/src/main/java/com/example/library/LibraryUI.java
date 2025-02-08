@@ -539,7 +539,6 @@ public class LibraryUI extends JFrame {
 
 
 
-    // Additional UI helper methods can be added here.
 
 
 
