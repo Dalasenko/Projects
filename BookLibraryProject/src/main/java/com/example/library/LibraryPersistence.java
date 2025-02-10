@@ -1,6 +1,8 @@
 package com.example.library;
 
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The LibraryPersistence class provides static methods to save and load
@@ -11,21 +13,24 @@ import java.io.*;
  */
 public class LibraryPersistence {
 
+    private static final Logger logger = Logger.getLogger(LibraryPersistence.class.getName());
+
     /**
      * Saves the given Library object to the specified file.
      *
      * @param library  the Library object to save.
      * @param fileName the name of the file.
+     * @throws LibraryPersistenceException if an I/O error occurs.
      */
-    public static void saveLibrary(Library library, String fileName) {
+    public static void saveLibrary(Library library, String fileName) throws LibraryPersistenceException {
         try (ObjectOutputStream out = new ObjectOutputStream(
                 new BufferedOutputStream(new FileOutputStream(fileName)))) {
 
             out.writeObject(library);
 
         } catch (IOException e) {
-            System.err.println("Error saving library data: " + e.getMessage());
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error saving library data", e);
+            throw new LibraryPersistenceException("Error saving library data", e);
         }
     }
 
@@ -36,8 +41,9 @@ public class LibraryPersistence {
      *
      * @param fileName the name of the file.
      * @return the loaded Library object or a new Library if loading fails.
+     * @throws LibraryPersistenceException if an I/O error occurs.
      */
-    public static Library loadLibrary(String fileName) {
+    public static Library loadLibrary(String fileName) throws LibraryPersistenceException {
         File file = new File(fileName);
         if (!file.exists()) {
             return new Library();
@@ -49,23 +55,25 @@ public class LibraryPersistence {
             if (obj instanceof Library) {
                 return (Library) obj;
             } else {
-                System.err.println("The file does not contain a valid Library object.");
+                logger.log(Level.WARNING, "The file does not contain a valid Library object.");
                 return new Library();
             }
 
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error loading library data: " + e.getMessage());
-            e.printStackTrace();
-            return new Library();
+            logger.log(Level.SEVERE, "Error loading library data", e);
+            throw new LibraryPersistenceException("Error loading library data", e);
         }
     }
+}
 
-
-
-
-
-
-
+/**
+ * Custom exception class for library persistence errors.
+ */
+class LibraryPersistenceException extends Exception {
+    public LibraryPersistenceException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
 
 
 
