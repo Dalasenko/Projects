@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -20,17 +21,27 @@ import java.util.List;
  */
 public class LibraryUI extends JFrame {
 
-    // Fields for the Books tab.
+    // Constants for UI customization
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private static final Color FOREGROUND_COLOR = Color.BLACK;
+    private static final Color BUTTON_COLOR = new Color(100, 149, 237);
+    private static final Color BORDER_COLOR = new Color(220, 220, 220);
+    private static final Font FONT_PLAIN = new Font("Segoe UI", Font.PLAIN, 16);
+    private static final Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 18);
+
+    // Fields for the Books tab
     private JTextField txtBookId, txtBookTitle, txtBookAuthor, txtBookPublisher, txtBookSearch;
     private JTable bookTable;
     private DefaultTableModel bookTableModel;
+    private TableRowSorter<DefaultTableModel> bookSorter;
 
-    // Fields for the Borrowers tab.
+    // Fields for the Borrowers tab
     private JTextField txtBorrowerId, txtBorrowerName, txtBorrowerEmail, txtBorrowerSearch;
     private JTable borrowerTable;
     private DefaultTableModel borrowerTableModel;
+    private TableRowSorter<DefaultTableModel> borrowerSorter;
 
-    // Reference to the Library model.
+    // Reference to the Library model
     private Library library;
 
     /**
@@ -48,24 +59,21 @@ public class LibraryUI extends JFrame {
      * Sets UIManager properties to configure fonts and colors.
      */
     private void customizeDefaults() {
-        Font uiFontPlain = new Font("Segoe UI", Font.PLAIN, 16);
-        Font uiFontBold = new Font("Segoe UI", Font.BOLD, 18);
+        UIManager.put("Label.font", FONT_PLAIN);
+        UIManager.put("Button.font", FONT_BOLD);
+        UIManager.put("TextField.font", FONT_PLAIN);
+        UIManager.put("Table.font", FONT_PLAIN);
+        UIManager.put("TableHeader.font", FONT_BOLD);
+        UIManager.put("OptionPane.messageFont", FONT_PLAIN);
 
-        UIManager.put("Label.font", uiFontPlain);
-        UIManager.put("Button.font", uiFontBold);
-        UIManager.put("TextField.font", uiFontPlain);
-        UIManager.put("Table.font", uiFontPlain);
-        UIManager.put("TableHeader.font", uiFontBold);
-        UIManager.put("OptionPane.messageFont", uiFontPlain);
-
-        UIManager.put("Panel.background", new Color(245, 245, 245));
-        UIManager.put("TextField.background", new Color(255, 255, 255));
-        UIManager.put("TextField.foreground", Color.BLACK);
-        UIManager.put("Table.background", new Color(255, 255, 255));
-        UIManager.put("Table.foreground", Color.BLACK);
-        UIManager.put("Table.gridColor", new Color(220, 220, 220));
+        UIManager.put("Panel.background", BACKGROUND_COLOR);
+        UIManager.put("TextField.background", Color.WHITE);
+        UIManager.put("TextField.foreground", FOREGROUND_COLOR);
+        UIManager.put("Table.background", Color.WHITE);
+        UIManager.put("Table.foreground", FOREGROUND_COLOR);
+        UIManager.put("Table.gridColor", BORDER_COLOR);
         UIManager.put("TableHeader.background", new Color(240, 240, 240));
-        UIManager.put("TableHeader.foreground", Color.BLACK);
+        UIManager.put("TableHeader.foreground", FOREGROUND_COLOR);
     }
 
     /**
@@ -79,8 +87,18 @@ public class LibraryUI extends JFrame {
         setLayout(new BorderLayout(10, 10));
         ((JComponent)getContentPane()).setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        JMenuBar menuBar = createMenuBar();
+        setJMenuBar(menuBar);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Books", createBooksPanel());
+        tabbedPane.addTab("Borrowers", createBorrowersPanel());
+        add(tabbedPane, BorderLayout.CENTER);
+    }
+
+    private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
-        menuBar.setBackground(new Color(245, 245, 245));
+        menuBar.setBackground(BACKGROUND_COLOR);
         JMenu fileMenu = new JMenu("File");
         fileMenu.setForeground(Color.DARK_GRAY);
         JMenuItem miSave = new JMenuItem("Save");
@@ -88,7 +106,6 @@ public class LibraryUI extends JFrame {
         fileMenu.add(miSave);
         fileMenu.add(miLoad);
         menuBar.add(fileMenu);
-        setJMenuBar(menuBar);
 
         miSave.addActionListener(e -> {
             LibraryPersistence.saveLibrary(library, "library.dat");
@@ -100,11 +117,7 @@ public class LibraryUI extends JFrame {
             refreshBorrowersTable(library.getBorrowers());
             JOptionPane.showMessageDialog(this, "Library loaded successfully.", "Load", JOptionPane.INFORMATION_MESSAGE);
         });
-
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Books", createBooksPanel());
-        tabbedPane.addTab("Borrowers", createBorrowersPanel());
-        add(tabbedPane, BorderLayout.CENTER);
+        return menuBar;
     }
 
     /**
@@ -113,59 +126,69 @@ public class LibraryUI extends JFrame {
      */
     private JPanel createBooksPanel() {
         JPanel booksPanel = new JPanel(new BorderLayout(10, 10));
-        booksPanel.setBackground(new Color(245, 245, 245));
-        TitledBorder border = BorderFactory.createTitledBorder(
-                new LineBorder(new Color(220, 220, 220), 2), "Books Management",
-                TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 18), Color.DARK_GRAY);
-        booksPanel.setBorder(border);
+        booksPanel.setBackground(BACKGROUND_COLOR);
+        booksPanel.setBorder(createTitledBorder("Books Management"));
 
-        // Form panel.
+        JPanel formPanel = createBooksFormPanel();
+        JPanel buttonsPanel = createBooksButtonsPanel();
+        JScrollPane tableScrollPane = createBooksTableScrollPane();
+
+        booksPanel.add(formPanel, BorderLayout.NORTH);
+        booksPanel.add(buttonsPanel, BorderLayout.CENTER);
+        booksPanel.add(tableScrollPane, BorderLayout.SOUTH);
+
+        return booksPanel;
+    }
+
+    private JPanel createBooksFormPanel() {
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(new Color(245, 245, 245));
-        TitledBorder formBorder = BorderFactory.createTitledBorder("Book Details");
-        formBorder.setTitleColor(Color.DARK_GRAY);
-        formPanel.setBorder(formBorder);
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(createTitledBorder("Book Details"));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(16, 16, 16, 16);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Row 1: ID (now editable) and Title.
+        // Row 1: ID (now editable) and Title
         gbc.gridx = 0;
         gbc.gridy = 0;
         formPanel.add(new JLabel("ID:"), gbc);
         gbc.gridx = 1;
         txtBookId = new JTextField(12);
-        // Make the ID field editable.
         txtBookId.setEditable(true);
+        txtBookId.setToolTipText("Enter the book ID (leave blank for auto-generated ID)");
         formPanel.add(txtBookId, gbc);
 
         gbc.gridx = 2;
         formPanel.add(new JLabel("Title:"), gbc);
         gbc.gridx = 3;
         txtBookTitle = new JTextField(25);
+        txtBookTitle.setToolTipText("Enter the book title");
         formPanel.add(txtBookTitle, gbc);
 
-        // Row 2: Author and Publisher.
+        // Row 2: Author and Publisher
         gbc.gridx = 0;
         gbc.gridy = 1;
         formPanel.add(new JLabel("Author:"), gbc);
         gbc.gridx = 1;
         txtBookAuthor = new JTextField(20);
+        txtBookAuthor.setToolTipText("Enter the author's name");
         formPanel.add(txtBookAuthor, gbc);
 
         gbc.gridx = 2;
         formPanel.add(new JLabel("Publisher:"), gbc);
         gbc.gridx = 3;
         txtBookPublisher = new JTextField(20);
+        txtBookPublisher.setToolTipText("Enter the publisher's name");
         formPanel.add(txtBookPublisher, gbc);
 
-        // Row 3: Search field and button.
+        // Row 3: Search field and button
         gbc.gridx = 0;
         gbc.gridy = 2;
         formPanel.add(new JLabel("Search:"), gbc);
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         txtBookSearch = new JTextField(30);
+        txtBookSearch.setToolTipText("Enter a keyword to search books");
         formPanel.add(txtBookSearch, gbc);
         gbc.gridx = 3;
         gbc.gridwidth = 1;
@@ -173,9 +196,13 @@ public class LibraryUI extends JFrame {
         customizeButton(btnSearch);
         formPanel.add(btnSearch, gbc);
 
-        // Buttons panel.
+        btnSearch.addActionListener(e -> searchBooks());
+        return formPanel;
+    }
+
+    private JPanel createBooksButtonsPanel() {
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 16));
-        buttonsPanel.setBackground(new Color(245, 245, 245));
+        buttonsPanel.setBackground(BACKGROUND_COLOR);
         JButton btnAdd = new JButton("Add");
         JButton btnUpdate = new JButton("Update");
         JButton btnDelete = new JButton("Delete");
@@ -186,98 +213,22 @@ public class LibraryUI extends JFrame {
         buttonsPanel.add(btnUpdate);
         buttonsPanel.add(btnDelete);
 
-        // Table panel.
+        btnAdd.addActionListener(e -> addBook());
+        btnUpdate.addActionListener(e -> updateBook());
+        btnDelete.addActionListener(e -> deleteBook());
+        return buttonsPanel;
+    }
+
+    private JScrollPane createBooksTableScrollPane() {
         bookTableModel = new DefaultTableModel(new Object[]{"ID", "Title", "Author", "Publisher"}, 0);
         bookTable = new JTable(bookTableModel);
         styleTable(bookTable);
+        bookSorter = new TableRowSorter<>(bookTableModel);
+        bookTable.setRowSorter(bookSorter);
         JScrollPane tableScrollPane = new JScrollPane(bookTable);
         tableScrollPane.setPreferredSize(new Dimension(1000, 350));
-        tableScrollPane.getViewport().setBackground(new Color(255, 255, 255));
-        tableScrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
-
-        // Assemble Books panel.
-        booksPanel.add(formPanel, BorderLayout.NORTH);
-        booksPanel.add(buttonsPanel, BorderLayout.CENTER);
-        booksPanel.add(tableScrollPane, BorderLayout.SOUTH);
-
-        // Listeners.
-        btnAdd.addActionListener(e -> {
-            String idText = txtBookId.getText().trim();
-            String title = txtBookTitle.getText().trim();
-            String author = txtBookAuthor.getText().trim();
-            String publisher = txtBookPublisher.getText().trim();
-            if (title.isEmpty() || author.isEmpty() || publisher.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill in all book fields.", "Input Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            Book newBook;
-            if (!idText.isEmpty()) {
-                try {
-                    int id = Integer.parseInt(idText);
-                    newBook = library.addBook(id, title, author, publisher);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Invalid ID format. Please enter a valid integer.", "Input Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-            } else {
-                newBook = library.addBook(title, author, publisher);
-            }
-            refreshBooksTable(library.getBooks());
-            clearBookFields();
-            JOptionPane.showMessageDialog(this, "Book added with ID: " + newBook.getId(), "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        btnUpdate.addActionListener(e -> {
-            String idText = txtBookId.getText().trim();
-            if (idText.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a book to update.", "Selection Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            try {
-                int id = Integer.parseInt(idText);
-                String title = txtBookTitle.getText().trim();
-                String author = txtBookAuthor.getText().trim();
-                String publisher = txtBookPublisher.getText().trim();
-                if (library.updateBook(id, title, author, publisher)) {
-                    refreshBooksTable(library.getBooks());
-                    clearBookFields();
-                    JOptionPane.showMessageDialog(this, "Book updated.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Update failed.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid ID format.", "Input Error", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
-        btnDelete.addActionListener(e -> {
-            String idText = txtBookId.getText().trim();
-            if (idText.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a book to delete.", "Selection Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            try {
-                int id = Integer.parseInt(idText);
-                if (library.removeBook(id)) {
-                    refreshBooksTable(library.getBooks());
-                    clearBookFields();
-                    JOptionPane.showMessageDialog(this, "Book deleted.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Cannot delete a book that is on loan.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid ID format.", "Input Error", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
-        btnSearch.addActionListener(e -> {
-            String keyword = txtBookSearch.getText().trim();
-            if (keyword.isEmpty()) {
-                refreshBooksTable(library.getBooks());
-            } else {
-                refreshBooksTable(library.searchBooks(keyword));
-            }
-        });
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
 
         bookTable.addMouseListener(new MouseAdapter() {
             @Override
@@ -291,62 +242,67 @@ public class LibraryUI extends JFrame {
                 }
             }
         });
-
-        return booksPanel;
+        return tableScrollPane;
     }
 
-    /**
-     * Constructs the Borrowers tab panel.
-     * @return the Borrowers panel.
-     */
     private JPanel createBorrowersPanel() {
         JPanel borrowersPanel = new JPanel(new BorderLayout(10, 10));
-        borrowersPanel.setBackground(new Color(245, 245, 245));
-        TitledBorder border = BorderFactory.createTitledBorder(
-                new LineBorder(new Color(220, 220, 220), 2), "Borrowers Management",
-                TitledBorder.LEFT, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 18), Color.DARK_GRAY);
-        borrowersPanel.setBorder(border);
+        borrowersPanel.setBackground(BACKGROUND_COLOR);
+        borrowersPanel.setBorder(createTitledBorder("Borrowers Management"));
 
-        // Form panel.
+        JPanel formPanel = createBorrowersFormPanel();
+        JPanel buttonsPanel = createBorrowersButtonsPanel();
+        JScrollPane tableScrollPane = createBorrowersTableScrollPane();
+
+        borrowersPanel.add(formPanel, BorderLayout.NORTH);
+        borrowersPanel.add(buttonsPanel, BorderLayout.CENTER);
+        borrowersPanel.add(tableScrollPane, BorderLayout.SOUTH);
+
+        return borrowersPanel;
+    }
+
+    private JPanel createBorrowersFormPanel() {
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(new Color(245, 245, 245));
-        TitledBorder formBorder = BorderFactory.createTitledBorder("Borrower Details");
-        formBorder.setTitleColor(Color.DARK_GRAY);
-        formPanel.setBorder(formBorder);
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(createTitledBorder("Borrower Details"));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(16, 16, 16, 16);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Row 1: ID (editable) and Name.
+        // Row 1: ID (editable) and Name
         gbc.gridx = 0;
         gbc.gridy = 0;
         formPanel.add(new JLabel("ID:"), gbc);
         gbc.gridx = 1;
         txtBorrowerId = new JTextField(12);
         txtBorrowerId.setEditable(true);
+        txtBorrowerId.setToolTipText("Enter the borrower ID (leave blank for auto-generated ID)");
         formPanel.add(txtBorrowerId, gbc);
 
         gbc.gridx = 2;
         formPanel.add(new JLabel("Name:"), gbc);
         gbc.gridx = 3;
         txtBorrowerName = new JTextField(25);
+        txtBorrowerName.setToolTipText("Enter the borrower name");
         formPanel.add(txtBorrowerName, gbc);
 
-        // Row 2: Email.
+        // Row 2: Email
         gbc.gridx = 0;
         gbc.gridy = 1;
         formPanel.add(new JLabel("Email:"), gbc);
         gbc.gridx = 1;
         txtBorrowerEmail = new JTextField(30);
+        txtBorrowerEmail.setToolTipText("Enter the borrower email");
         formPanel.add(txtBorrowerEmail, gbc);
 
-        // Row 3: Search field and button.
+        // Row 3: Search field and button
         gbc.gridx = 0;
         gbc.gridy = 2;
         formPanel.add(new JLabel("Search:"), gbc);
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         txtBorrowerSearch = new JTextField(30);
+        txtBorrowerSearch.setToolTipText("Enter a keyword to search borrowers");
         formPanel.add(txtBorrowerSearch, gbc);
         gbc.gridx = 3;
         gbc.gridwidth = 1;
@@ -354,9 +310,13 @@ public class LibraryUI extends JFrame {
         customizeButton(btnSearchBorrower);
         formPanel.add(btnSearchBorrower, gbc);
 
-        // Buttons panel.
+        btnSearchBorrower.addActionListener(e -> searchBorrowers());
+        return formPanel;
+    }
+
+    private JPanel createBorrowersButtonsPanel() {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 16));
-        btnPanel.setBackground(new Color(245, 245, 245));
+        btnPanel.setBackground(BACKGROUND_COLOR);
         JButton btnAddBorrower = new JButton("Add");
         JButton btnUpdateBorrower = new JButton("Update");
         JButton btnDeleteBorrower = new JButton("Delete");
@@ -367,96 +327,22 @@ public class LibraryUI extends JFrame {
         btnPanel.add(btnUpdateBorrower);
         btnPanel.add(btnDeleteBorrower);
 
-        // Table panel.
+        btnAddBorrower.addActionListener(e -> addBorrower());
+        btnUpdateBorrower.addActionListener(e -> updateBorrower());
+        btnDeleteBorrower.addActionListener(e -> deleteBorrower());
+        return btnPanel;
+    }
+
+    private JScrollPane createBorrowersTableScrollPane() {
         borrowerTableModel = new DefaultTableModel(new Object[]{"ID", "Name", "Email"}, 0);
         borrowerTable = new JTable(borrowerTableModel);
         styleTable(borrowerTable);
+        borrowerSorter = new TableRowSorter<>(borrowerTableModel);
+        borrowerTable.setRowSorter(borrowerSorter);
         JScrollPane tableScrollPane = new JScrollPane(borrowerTable);
         tableScrollPane.setPreferredSize(new Dimension(1000, 300));
-        tableScrollPane.getViewport().setBackground(new Color(255, 255, 255));
-        tableScrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
-
-        // Assemble Borrowers panel.
-        borrowersPanel.add(formPanel, BorderLayout.NORTH);
-        borrowersPanel.add(btnPanel, BorderLayout.CENTER);
-        borrowersPanel.add(tableScrollPane, BorderLayout.SOUTH);
-
-        // Listeners.
-        btnAddBorrower.addActionListener(e -> {
-            String idText = txtBorrowerId.getText().trim();
-            String name = txtBorrowerName.getText().trim();
-            String email = txtBorrowerEmail.getText().trim();
-            if (name.isEmpty() || email.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill in all borrower fields.", "Input Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            Borrower newBorrower;
-            if (!idText.isEmpty()) {
-                try {
-                    int id = Integer.parseInt(idText);
-                    newBorrower = library.addBorrower(id, name, email);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Invalid ID format. Please enter a valid integer.", "Input Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-            } else {
-                newBorrower = library.addBorrower(name, email);
-            }
-            refreshBorrowersTable(library.getBorrowers());
-            clearBorrowerFields();
-            JOptionPane.showMessageDialog(this, "Borrower added with ID: " + newBorrower.getId(), "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        btnUpdateBorrower.addActionListener(e -> {
-            String idText = txtBorrowerId.getText().trim();
-            if (idText.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a borrower to update.", "Selection Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            try {
-                int id = Integer.parseInt(idText);
-                String name = txtBorrowerName.getText().trim();
-                String email = txtBorrowerEmail.getText().trim();
-                if (library.updateBorrower(id, name, email)) {
-                    refreshBorrowersTable(library.getBorrowers());
-                    clearBorrowerFields();
-                    JOptionPane.showMessageDialog(this, "Borrower updated.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Update failed.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid ID format.", "Input Error", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
-        btnDeleteBorrower.addActionListener(e -> {
-            String idText = txtBorrowerId.getText().trim();
-            if (idText.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a borrower to delete.", "Selection Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            try {
-                int id = Integer.parseInt(idText);
-                if (library.removeBorrower(id)) {
-                    refreshBorrowersTable(library.getBorrowers());
-                    clearBorrowerFields();
-                    JOptionPane.showMessageDialog(this, "Borrower deleted.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Delete failed.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid ID format.", "Input Error", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
-        btnSearchBorrower.addActionListener(e -> {
-            String keyword = txtBorrowerSearch.getText().trim();
-            if (keyword.isEmpty()) {
-                refreshBorrowersTable(library.getBorrowers());
-            } else {
-                refreshBorrowersTable(library.searchBorrowers(keyword));
-            }
-        });
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
 
         borrowerTable.addMouseListener(new MouseAdapter() {
             @Override
@@ -469,8 +355,7 @@ public class LibraryUI extends JFrame {
                 }
             }
         });
-
-        return borrowersPanel;
+        return tableScrollPane;
     }
 
     // ---------------------------
@@ -510,9 +395,9 @@ public class LibraryUI extends JFrame {
     // ---------------------------
     private void customizeButton(JButton button) {
         button.setFocusPainted(false);
-        button.setBackground(new Color(100, 149, 237));
+        button.setBackground(BUTTON_COLOR);
         button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        button.setFont(FONT_BOLD);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
@@ -521,12 +406,12 @@ public class LibraryUI extends JFrame {
     // ---------------------------
     private void styleTable(JTable table) {
         table.setFillsViewportHeight(true);
-        table.setBackground(new Color(255, 255, 255));
-        table.setForeground(Color.BLACK);
+        table.setBackground(Color.WHITE);
+        table.setForeground(FOREGROUND_COLOR);
         table.setRowHeight(30);
         table.getTableHeader().setBackground(new Color(240, 240, 240));
-        table.getTableHeader().setForeground(Color.BLACK);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 16));
+        table.getTableHeader().setForeground(FOREGROUND_COLOR);
+        table.getTableHeader().setFont(FONT_BOLD);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
@@ -535,8 +420,39 @@ public class LibraryUI extends JFrame {
         }
     }
 
+    private TitledBorder createTitledBorder(String title) {
+        return BorderFactory.createTitledBorder(
+                new LineBorder(BORDER_COLOR, 2), title,
+                TitledBorder.LEFT, TitledBorder.TOP, FONT_BOLD, Color.DARK_GRAY);
+    }
 
-
+    // ---------------------------
+    // ActionListener methods
+    // ---------------------------
+    private void addBook() {
+        String idText = txtBookId.getText().trim();
+        String title = txtBookTitle.getText().trim();
+        String author = txtBookAuthor.getText().trim();
+        String publisher = txtBookPublisher.getText().trim();
+        if (title.isEmpty() || author.isEmpty() || publisher.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all book fields.", "Input Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Book newBook;
+        if (!idText.isEmpty()) {
+            try {
+                int id = Integer.parseInt(idText);
+                newBook = library.addBook(id, title, author, publisher);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Invalid ID format. Please enter a valid integer.", "Input Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        } else {
+            newBook = library.addBook(title, author, publisher);
+        }
+        refreshBooksTable(library.getBooks());
+        clearBookFields();
+        JOptionPane.showMessageDialog(this, "Book added with ID: " + newBook.getId(), "Success", JOptionPane.INFORMATION_MESSAGE);
 
 
 
