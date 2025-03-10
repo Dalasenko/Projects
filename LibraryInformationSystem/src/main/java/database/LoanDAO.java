@@ -8,6 +8,7 @@ import java.util.List;
 
 public class LoanDAO {
 
+    // Retrieves all loans from the database
     public List<Loan> getAllLoans() {
         List<Loan> loans = new ArrayList<>();
 
@@ -20,6 +21,7 @@ public class LoanDAO {
                              "JOIN patrons p ON l.patron_id = p.id " +
                              "ORDER BY l.loan_date DESC")) {
 
+            // Iterate through the result set and map it to Loan objects
             while (rs.next()) {
                 Loan loan = mapResultSetToLoan(rs);
                 loan.setBookTitle(rs.getString("book_title"));
@@ -34,6 +36,7 @@ public class LoanDAO {
         return loans;
     }
 
+    // Retrieves active loans (not returned) from the database
     public List<Loan> getActiveLoans() {
         List<Loan> loans = new ArrayList<>();
 
@@ -47,6 +50,7 @@ public class LoanDAO {
                              "WHERE l.returned = FALSE " +
                              "ORDER BY l.due_date ASC")) {
 
+            // Iterate through the result set and map it to Loan objects
             while (rs.next()) {
                 Loan loan = mapResultSetToLoan(rs);
                 loan.setBookTitle(rs.getString("book_title"));
@@ -61,6 +65,7 @@ public class LoanDAO {
         return loans;
     }
 
+    // Retrieves overdue loans (not returned and past due date) from the database
     public List<Loan> getOverdueLoans() {
         List<Loan> loans = new ArrayList<>();
         LocalDate today = LocalDate.now();
@@ -77,6 +82,7 @@ public class LoanDAO {
             stmt.setDate(1, Date.valueOf(today));
             ResultSet rs = stmt.executeQuery();
 
+            // Iterate through the result set and map it to Loan objects
             while (rs.next()) {
                 Loan loan = mapResultSetToLoan(rs);
                 loan.setBookTitle(rs.getString("book_title"));
@@ -91,6 +97,7 @@ public class LoanDAO {
         return loans;
     }
 
+    // Retrieves loans by a specific patron from the database
     public List<Loan> getLoansByPatron(int patronId) {
         List<Loan> loans = new ArrayList<>();
 
@@ -106,6 +113,7 @@ public class LoanDAO {
             stmt.setInt(1, patronId);
             ResultSet rs = stmt.executeQuery();
 
+            // Iterate through the result set and map it to Loan objects
             while (rs.next()) {
                 Loan loan = mapResultSetToLoan(rs);
                 loan.setBookTitle(rs.getString("book_title"));
@@ -120,6 +128,7 @@ public class LoanDAO {
         return loans;
     }
 
+    // Checks out a book to a patron
     public boolean checkoutBook(int bookId, int patronId, int loanDays) {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
@@ -150,6 +159,7 @@ public class LoanDAO {
         }
     }
 
+    // Returns a book and updates the loan record
     public boolean returnBook(int loanId) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Get the book ID from the loan
@@ -189,6 +199,7 @@ public class LoanDAO {
         }
     }
 
+    // Maps a ResultSet to a Loan object
     private Loan mapResultSetToLoan(ResultSet rs) throws SQLException {
         Loan loan = new Loan();
         loan.setId(rs.getInt("id"));
