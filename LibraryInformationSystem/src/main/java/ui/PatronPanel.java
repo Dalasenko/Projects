@@ -18,6 +18,7 @@ public class PatronPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JTextField searchField;
 
+    // Constructor for PatronPanel, initializing the UI components and loading data
     public PatronPanel(JFrame parentFrame) {
         this.parentFrame = parentFrame;
         this.patronDAO = new PatronDAO();
@@ -31,7 +32,9 @@ public class PatronPanel extends JPanel {
         JButton searchButton = new JButton("Search");
         JButton clearButton = new JButton("Clear");
 
+        // Adding action listener for the search button
         searchButton.addActionListener(this::searchPatrons);
+        // Adding action listener for the clear button
         clearButton.addActionListener(e -> {
             searchField.setText("");
             refreshData();
@@ -81,6 +84,7 @@ public class PatronPanel extends JPanel {
         JButton deleteButton = new JButton("Delete Patron");
         JButton viewLoansButton = new JButton("View Loans");
 
+        // Adding action listeners for action buttons
         addButton.addActionListener(e -> addPatron());
         editButton.addActionListener(e -> editPatron());
         deleteButton.addActionListener(e -> deletePatron());
@@ -100,10 +104,12 @@ public class PatronPanel extends JPanel {
         refreshData();
     }
 
+    // Method to refresh the table data
     public void refreshData() {
-        tableModel.setRowCount(0);
-        List<Patron> patrons = patronDAO.getAllPatrons();
+        tableModel.setRowCount(0); // Clear existing data
+        List<Patron> patrons = patronDAO.getAllPatrons(); // Fetch all patrons
 
+        // Add each patron to the table model
         for (Patron patron : patrons) {
             Object[] rowData = {
                     patron.getId(),
@@ -117,12 +123,14 @@ public class PatronPanel extends JPanel {
         }
     }
 
+    // Method to search patrons based on the search term
     private void searchPatrons(ActionEvent e) {
         String searchTerm = searchField.getText().trim();
         if (!searchTerm.isEmpty()) {
-            tableModel.setRowCount(0);
-            List<Patron> patrons = patronDAO.searchPatrons(searchTerm);
+            tableModel.setRowCount(0); // Clear existing data
+            List<Patron> patrons = patronDAO.searchPatrons(searchTerm); // Search patrons
 
+            // Add each found patron to the table model
             for (Patron patron : patrons) {
                 Object[] rowData = {
                         patron.getId(),
@@ -137,21 +145,23 @@ public class PatronPanel extends JPanel {
         }
     }
 
+    // Method to add a new patron
     private void addPatron() {
         PatronDialog dialog = new PatronDialog(parentFrame, null);
         dialog.setVisible(true);
 
         if (dialog.getPatron() != null) {
             Patron newPatron = dialog.getPatron();
-            int id = patronDAO.addPatron(newPatron);
+            int id = patronDAO.addPatron(newPatron); // Add patron to database
 
             if (id > 0) {
                 newPatron.setId(id);
-                refreshData();
+                refreshData(); // Refresh table data
             }
         }
     }
 
+    // Method to edit the selected patron
     private void editPatron() {
         int selectedRow = patronTable.getSelectedRow();
         if (selectedRow >= 0) {
@@ -163,8 +173,8 @@ public class PatronPanel extends JPanel {
                 dialog.setVisible(true);
 
                 if (dialog.getPatron() != null) {
-                    patronDAO.updatePatron(dialog.getPatron());
-                    refreshData();
+                    patronDAO.updatePatron(dialog.getPatron()); // Update patron in database
+                    refreshData(); // Refresh table data
                 }
             }
         } else {
@@ -174,6 +184,7 @@ public class PatronPanel extends JPanel {
         }
     }
 
+    // Method to delete the selected patron
     private void deletePatron() {
         int selectedRow = patronTable.getSelectedRow();
         if (selectedRow >= 0) {
@@ -185,9 +196,9 @@ public class PatronPanel extends JPanel {
                     "Confirm Delete", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
-                boolean success = patronDAO.deletePatron(patronId);
+                boolean success = patronDAO.deletePatron(patronId); // Delete patron from database
                 if (success) {
-                    refreshData();
+                    refreshData(); // Refresh table data
                 } else {
                     JOptionPane.showMessageDialog(parentFrame,
                             "Could not delete patron. They may have active loans.",
@@ -201,6 +212,7 @@ public class PatronPanel extends JPanel {
         }
     }
 
+    // Method to view loans of the selected patron
     private void viewPatronLoans() {
         int selectedRow = patronTable.getSelectedRow();
         if (selectedRow >= 0) {
