@@ -17,24 +17,26 @@ public class LoanPanel extends JPanel {
     private DefaultTableModel tableModel;
     private boolean overdueOnly;
 
+    // Constructor to initialize the LoanPanel
     public LoanPanel(JFrame parentFrame, boolean overdueOnly) {
         this.parentFrame = parentFrame;
         this.loanDAO = new LoanDAO();
         this.overdueOnly = overdueOnly;
 
+        // Set layout and border for the panel
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Status label
+        // Status label to indicate whether showing overdue loans or all loans
         JLabel statusLabel = new JLabel(overdueOnly ? "Overdue Loans" : "All Loans");
         statusLabel.setFont(new Font(statusLabel.getFont().getName(), Font.BOLD, 14));
 
-        // Table
+        // Table setup with column names
         String[] columnNames = {"ID", "Book", "Patron", "Loan Date", "Due Date", "Status"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return false; // Cells are not editable
             }
         };
 
@@ -42,7 +44,7 @@ public class LoanPanel extends JPanel {
         loanTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         loanTable.getTableHeader().setReorderingAllowed(false);
 
-        // Column widths
+        // Set preferred column widths
         loanTable.getColumnModel().getColumn(0).setPreferredWidth(50);   // ID
         loanTable.getColumnModel().getColumn(1).setPreferredWidth(200);  // Book
         loanTable.getColumnModel().getColumn(2).setPreferredWidth(150);  // Patron
@@ -53,7 +55,7 @@ public class LoanPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(loanTable);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
-        // Action panel
+        // Action panel with buttons
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton refreshButton = new JButton("Refresh");
         JButton returnButton = new JButton("Return Book");
@@ -83,20 +85,22 @@ public class LoanPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
         add(actionPanel, BorderLayout.SOUTH);
 
-        // Load data
+        // Load data into the table
         refreshData();
     }
 
+    // Method to refresh the data in the table
     public void refreshData() {
-        tableModel.setRowCount(0);
+        tableModel.setRowCount(0); // Clear existing rows
 
         List<Loan> loans;
         if (overdueOnly) {
-            loans = loanDAO.getOverdueLoans();
+            loans = loanDAO.getOverdueLoans(); // Get overdue loans if overdueOnly is true
         } else {
             loans = loanDAO.getActiveLoans(); // Default to active loans
         }
 
+        // Populate the table with loan data
         for (Loan loan : loans) {
             String status;
             if (loan.isReturned()) {
@@ -119,11 +123,13 @@ public class LoanPanel extends JPanel {
         }
     }
 
+    // Method to load all loans into the table
     private void loadAllLoans() {
         if (!overdueOnly) {
-            tableModel.setRowCount(0);
+            tableModel.setRowCount(0); // Clear existing rows
             List<Loan> loans = loanDAO.getAllLoans();
 
+            // Populate the table with all loan data
             for (Loan loan : loans) {
                 String status;
                 if (loan.isReturned()) {
@@ -147,11 +153,13 @@ public class LoanPanel extends JPanel {
         }
     }
 
+    // Method to load active loans into the table
     private void loadActiveLoans() {
         if (!overdueOnly) {
-            tableModel.setRowCount(0);
+            tableModel.setRowCount(0); // Clear existing rows
             List<Loan> loans = loanDAO.getActiveLoans();
 
+            // Populate the table with active loan data
             for (Loan loan : loans) {
                 String status;
                 if (loan.isOverdue()) {
@@ -173,6 +181,7 @@ public class LoanPanel extends JPanel {
         }
     }
 
+    // Method to handle the return of a book
     private void returnBook() {
         int selectedRow = loanTable.getSelectedRow();
         if (selectedRow >= 0) {
