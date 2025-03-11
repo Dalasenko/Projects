@@ -7,7 +7,7 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 
 public class DatabaseConnection {
-    // Updated JDBC URL with connection parameters to resolve the error
+    // Updated JDBC URL with connection parameters 
     private static final String DB_URL = "jdbc:h2:./librarydb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE";
     private static final String USER = "sa";
     private static final String PASS = "";
